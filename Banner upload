@@ -1,0 +1,221 @@
+$(document).ready(function () {    
+    $("select").select2();
+    GetbannerData();
+});
+
+function operateFormatter(value, row, index) {    
+    var str = '';
+    if (row.Status == "1") {
+        str = '&nbsp;<a class="active" href="javascript:void(0)" title="Click to De-Activate"><i class="fa fa-check-circle text-success fa-lg" data-placement="top"></i></a>'
+    }
+    else {
+        str = '&nbsp;<a class="deactive" href="javascript:void(0)" title="Click to Activate"><i class="fa fa-times-circle text-danger fa-lg" data-placement="top"></i></a>'
+    }
+    return [
+        str
+    ].join('');
+}
+
+
+window.operateEvents = {
+    'click .active': function (e, value, row, index) {        
+        var flag = 'D';
+        var UpdateUser = { Flag: flag, UserID: row.ID };
+
+        $.ajax({
+            type: "POST",
+            url: apiUrl + '/Master/UpdateStatus',
+            data: JSON.stringify(UpdateUser),
+            contentType: "application/json",
+            dataType: "json",
+            async: true,
+            cache: false,
+            success: function (message) {              
+                            
+                    GetbannerData();
+                
+                if (message.sts == 200) {
+                    //toastrStateConfig(); 
+                    toastr.success(message.msg);
+                }
+                else if (message.sts == 100) {
+                    //toastrStateConfig();
+                    toastr.error(message.msg);
+
+                }
+                else if (message.sts == 300) {
+                    //toastrStateConfig();
+                    toastr.error(message.Return);
+                }
+                else if (message.sts == 500) {
+                    window.location = SessionExpireUrl + message.msg;
+                }
+                //GetbannerData();
+            },
+            error: function (x, e) {
+
+                //toastrStateConfig(); 
+                window.location = apiUrl + "/Home/Error";
+            }
+        })
+    },
+    'click .deactive': function (e, value, row, index) {    
+        var flag = 'A';
+        var UpdateUser = { Flag: flag, UserID: row.ID };
+
+        $.ajax({
+            type: "POST",
+            url: apiUrl + '/Master/UpdateStatus',
+            data: JSON.stringify(UpdateUser),
+            contentType: "application/json",
+            dataType: "json",
+            async: true,
+            cache: false,
+            success: function (message) {
+               
+                GetbannerData();
+                if (message.sts == 200) {
+                    //toastrStateConfig(); 
+                    toastr.success(message.msg);
+                }
+                else  {
+                    //toastrStateConfig();
+                    toastr.error(message.msg);
+
+                }
+                
+
+            },
+            error: function (x, e) {                
+                //toastrStateConfig();
+                window.location = apiUrl + "/Home/Error";
+            }
+        })
+    }
+};
+
+function GetbannerData() {
+    $('#ImgLoadingBanner').show();
+    var BannerImageUploadEntities = {  };
+    $.ajax({
+        type: "POST",
+        url: apiUrl + '/Master/GetBannerData',
+        data: JSON.stringify(BannerImageUploadEntities),
+        contentType: "application/json",
+        dataType: "json",
+        async: true,
+        cache: false,
+        success: function (msg) {
+            debugger;
+            $('#ImgLoadingBanner').hide();
+            $('#tblbanner').bootstrapTable('destroy');
+
+            $('#tblbanner').bootstrapTable({
+                data: msg
+            });
+            if (msg.sts == 500) {
+                window.location = SessionExpireUrl + msg.msg;
+            }
+        },
+        error: function (x, e) {
+            window.location = apiUrl + "/Home/Error";
+        }
+    })
+}
+$('#cancel').click(function () {
+    $('#bannerupload').val('');
+});
+$('#btnUpload').click(function () {
+   
+    // Checking whether FormData is available in browser  
+    if (window.FormData !== undefined) {
+
+        var fileUpload = $("#bannerupload").get(0);
+        var files = fileUpload.files;
+
+        // Create FormData object  
+        var fileData = new FormData();
+
+        // Looping over all files and add it to FormData object  
+        for (var i = 0; i < files.length; i++) {
+            fileData.append(files[i].name, files[i]);
+
+        }
+
+        // Adding one more key to FormData object  
+        fileData.append('username', 'Manas');
+
+
+        var recreatedby = "0";
+        var Flag = "Add";
+        var userid = "0";
+        $.ajax({
+            type: "POST",
+            url: apiUrl + '/Master/Uploadfiles?Flag=' + Flag,
+            data: fileData,
+            contentType: false, // Not to set any content header  
+            processData: false, // Not to process data  
+            async: true,
+            cache: false,
+            success: function (message) {
+                debugger
+                GetbannerData();               
+                if (message.sts == 200) {
+                    //toastrStateConfig();
+                    $('#bannerupload').val('');
+                    toastr['success'](message.msg);
+                }
+                else if (message.sts == 100) {
+                    //toastrStateConfig();
+                    $('#bannerupload').val('');
+                    toastr['error'](message.msg);
+                }
+                else if (message.sts == 300) {
+                    //toastrStateConfig();         
+                    $('#bannerupload').val('');
+                    toastr['error'](message.msg);
+                                 
+                }
+                if (message.sts == 500) {
+                    window.location = SessionExpireUrl + message.msg;
+                }
+            },
+            error: function (x, e) {
+                window.location = apiUrl + "/Home/Error";
+            }
+        })
+
+
+    } else {
+        //alert("FormData is not supported.");
+    }
+});
+
+var _validFileExtensions = [".jpg", ".jpeg", ".gif", ".png"];
+function ValidateFileExtensions(oForm) {
+    debugger;        
+    if (oForm.type == "file") {
+        
+        //var sFileName = oForm.value;
+        var sFileName = $('input[type=file]').val().replace(/.*(\/|\\)/, '');
+            if (sFileName.length > 0) {
+                var blnValid = false;
+                for (var j = 0; j < _validFileExtensions.length; j++) {
+                    var sCurExtension = _validFileExtensions[j];
+                    if (sFileName.substr(sFileName.length - sCurExtension.length, sCurExtension.length).toLowerCase() == sCurExtension.toLowerCase()) {
+                        blnValid = true;                        
+                        break;
+                    }
+                }
+
+                if (!blnValid) {
+                    oForm.value = '';
+                    //alert("Sorry, " + sFileName + " is invalid, allowed extensions are: " + _validFileExtensions.join(", "));
+                    toastr['error']("Sorry, file format " + sFileName.substr() + " is not allowed to upload, allowed file formats are: " + _validFileExtensions.join(", "));                    
+                    return false;
+                }
+            }
+        }
+    return true;
+}
+
