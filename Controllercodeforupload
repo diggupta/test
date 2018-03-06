@@ -1,0 +1,94 @@
+ [AcceptVerbs("GET", "POST")]
+        [HttpPost]
+        [Route("/Master/Uploadfiles")]
+        
+        public ActionResult Uploadfiles(string Flag)
+        {
+            BannerUpload objBannerPhotoUpload = new BannerUpload();
+            try
+            {
+               
+                    string pathToSave = string.Empty;
+                    string pathToSaveDb = string.Empty;
+                string PathToDownload = string.Empty;
+                    string FileExt = string.Empty;
+                    string FileName = string.Empty;
+                    Int64 Filesize = 0;
+                    string BannerimageUploadPath = ConfigurationManager.AppSettings["BannerUploadPath"].ToString();
+                    string BannerimageUploadPathDb = ConfigurationManager.AppSettings["BannerUploadPathDb"].ToString();
+
+                    string BannerDownloadPath = ConfigurationManager.AppSettings["BannerDownloadPath"].ToString();
+
+                HttpFileCollection fileCollection = System.Web.HttpContext.Current.Request.Files;
+                    if (fileCollection.Count > 0)
+                    {
+                        foreach (string item in fileCollection)
+                        {
+                            HttpPostedFile file = fileCollection[item];
+                            if (!string.IsNullOrEmpty(file.FileName))
+                            {
+                                FileExt = Path.GetExtension(file.FileName);
+                                Filesize = file.ContentLength;
+                                FileName = Path.GetFileName(file.FileName);
+
+                            // pathToSave = Path.Combine(BannerimageUploadPath, file.FileName);
+                            // pathToSaveDb = Path.Combine(BannerimageUploadPathDb, file.FileName);
+
+                            pathToSave = Server.MapPath(BannerimageUploadPath) + FileName;
+                            //pathToSaveDb = Server.MapPath(BannerimageUploadPathDb) + FileName;
+
+                            PathToDownload = BannerimageUploadPathDb + FileName;
+
+                            if (ValidateFileExtension(FileExt.ToString().ToLower(), objBannerPhotoUpload.FileExt.ToString().ToLower()))
+                                {
+                                if (ValidateFileSize(Filesize, objBannerPhotoUpload.ValidateFileSize))
+                                {
+                                    file.SaveAs(pathToSave);
+                                }
+                                else
+                                {
+                                    objBannerPhotoUpload.msg = "File should not be more than 5MB in size.";
+                                    objBannerPhotoUpload.sts = "300";
+                                    return Json(objBannerPhotoUpload);
+                                }
+                                }
+                                else
+                                {
+
+                                    objBannerPhotoUpload.msg = "Not a valid file, Only (.Jpg, .png, .JPEG or .gif)";
+                                    objBannerPhotoUpload.sts = "300";
+                                    return Json(objBannerPhotoUpload);
+                                }
+                            }
+                        }
+
+                        Banner obj = new Banner();
+                        objBannerPhotoUpload.Flag = Flag;
+                        objBannerPhotoUpload.EmployeeId = Convert.ToString(Session["EmployeeID"]);
+                        objBannerPhotoUpload.FileType = FileExt;
+                        objBannerPhotoUpload.FileName = FileName;
+                        objBannerPhotoUpload.FileSize = Filesize;
+                        objBannerPhotoUpload.FilePath = PathToDownload;
+                        objBannerPhotoUpload.RecCreatedBy = objBannerPhotoUpload.EmployeeId;
+                        obj.InsertBannerImage(objBannerPhotoUpload).ToString();
+
+                    }
+                    else
+                    {
+                        objBannerPhotoUpload.sts = "100";
+                        objBannerPhotoUpload.msg = "Please Upload Image.";
+                        return Json(objBannerPhotoUpload);
+                    }
+
+                
+
+            }
+            catch (Exception ex)
+            {
+                objBannerPhotoUpload.msg = "Banner Image upload failed.";
+                objBannerPhotoUpload.sts = "300";
+                throw ex;
+
+            }
+            return Json(objBannerPhotoUpload);
+        }
